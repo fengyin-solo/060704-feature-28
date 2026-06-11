@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import type { User } from '@/types'
+import type { User, Visitor } from '@/types'
 import { storage } from '@/utils/storage'
 import { generateId } from '@/utils/id'
 
@@ -8,6 +8,7 @@ export const useUserStore = defineStore('user', () => {
   const users = ref<User[]>([])
   const currentUserId = ref<string | null>(null)
   const visitingUserId = ref<string | null>(null)
+  const visitors = ref<Visitor[]>([])
 
   const currentUser = computed(() => {
     if (!currentUserId.value) return null
@@ -23,9 +24,27 @@ export const useUserStore = defineStore('user', () => {
     return users.value.filter(u => u.isPublic && u.id !== currentUserId.value)
   })
 
+  const recentVisitors = computed(() => {
+    if (!currentUserId.value) return []
+    const userVisitors = visitors.value.filter(v => v.visitedUserId === currentUserId.value)
+    const uniqueVisitors: Visitor[] = []
+    const seen = new Set<string>()
+    
+    for (let i = userVisitors.length - 1; i >= 0; i--) {
+      const visitor = userVisitors[i]
+      if (!seen.has(visitor.visitorId)) {
+        seen.add(visitor.visitorId)
+        uniqueVisitors.unshift(visitor)
+      }
+    }
+    
+    return uniqueVisitors.sort((a, b) => b.visitedAt - a.visitedAt).slice(0, 20)
+  })
+
   function init() {
     users.value = storage.getUsers()
     currentUserId.value = storage.getCurrentUser()
+    visitors.value = storage.getVisitors()
     
     if (users.value.length === 0) {
       createDefaultUsers()
@@ -102,6 +121,34 @@ export const useUserStore = defineStore('user', () => {
     return users.value.find(u => u.id === userId)
   }
 
+  function recordVisit(visitedUserId: string, pageVisited: string = 'diaryWall'): void {
+    if (!currentUserId.value || currentUserId.value === visitedUserId) return
+    
+    const existingVisit = visitors.value.find(
+      v => v.visitorId === currentUserId.value && 
+           v.visitedUserId === visitedUserId &&
+           Date.now() - v.visitedAt < 5 * 60 * 1000
+    )
+    
+    if (existingVisit) {
+      existingVisit.visitedAt = Date.now()
+      existingVisit.pageVisited = pageVisited
+      storage.saveVisitors(visitors.value)
+      return
+    }
+    
+    const visitor: Visitor = {
+      id: generateId(),
+      visitorId: currentUserId.value,
+      visitedUserId,
+      visitedAt: Date.now(),
+      pageVisited
+    }
+    
+    visitors.value.push(visitor)
+    storage.addVisitor(visitor)
+  }
+
   return {
     users,
     currentUserId,
@@ -109,6 +156,8 @@ export const useUserStore = defineStore('user', () => {
     visitingUserId,
     visitingUser,
     publicUsers,
+    recentVisitors,
+    visitors,
     init,
     registerUser,
     login,
@@ -116,6 +165,7 @@ export const useUserStore = defineStore('user', () => {
     updateUser,
     startVisiting,
     stopVisiting,
-    getUserById
+    getUserById,
+    recordVisit
   }
 })

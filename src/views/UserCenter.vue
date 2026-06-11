@@ -84,6 +84,26 @@ function getTombstonePreview(styleId: string): string {
   return style?.name || styleId
 }
 
+function getVisitorName(visitorId: string): string {
+  const user = userStore.getUserById(visitorId)
+  return user?.name || '匿名用户'
+}
+
+function formatVisitTime(timestamp: number): string {
+  const now = Date.now()
+  const diff = now - timestamp
+  
+  if (diff < 60 * 1000) {
+    return '刚刚'
+  } else if (diff < 60 * 60 * 1000) {
+    return `${Math.floor(diff / (60 * 1000))} 分钟前`
+  } else if (diff < 24 * 60 * 60 * 1000) {
+    return `${Math.floor(diff / (60 * 60 * 1000))} 小时前`
+  } else {
+    return `${Math.floor(diff / (24 * 60 * 60 * 1000))} 天前`
+  }
+}
+
 onMounted(() => {
   if (userStore.currentUser) {
     editTombstoneStyle.value = userStore.currentUser.tombstoneStyle
@@ -295,6 +315,45 @@ onMounted(() => {
                     backgroundColor: STATE_COLORS[state]
                   }"
                 />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="p-6 rounded-lg border-2 border-gray-700 bg-gray-800/50">
+          <h3 class="font-vt323 text-xl text-diary-fresh mb-4">👥 最近访客</h3>
+          
+          <div v-if="userStore.recentVisitors.length === 0" class="text-center py-8">
+            <div class="text-4xl mb-2">👀</div>
+            <p class="text-gray-500 font-vt323">
+              还没有人来串门
+            </p>
+            <p v-if="!userStore.currentUser?.isPublic" class="text-gray-600 font-vt323 text-sm mt-1">
+              把你的主页设置为公开，让更多人发现你
+            </p>
+          </div>
+          
+          <div v-else class="space-y-3">
+            <div
+              v-for="visitor in userStore.recentVisitors"
+              :key="visitor.id"
+              class="flex items-center gap-4 p-3 rounded-lg bg-gray-700/30 hover:bg-gray-700/50 transition-colors"
+            >
+              <div class="w-10 h-10 rounded-lg bg-gray-700 flex items-center justify-center text-xl border border-gray-600">
+                👤
+              </div>
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center justify-between">
+                  <span class="font-vt323 text-diary-fresh truncate">
+                    {{ getVisitorName(visitor.visitorId) }}
+                  </span>
+                  <span class="text-gray-500 font-vt323 text-xs">
+                    {{ formatVisitTime(visitor.visitedAt) }}
+                  </span>
+                </div>
+                <p class="text-gray-500 font-vt323 text-xs">
+                  查看了 {{ visitor.pageVisited === 'diaryWall' ? '日记墙' : visitor.pageVisited }}
+                </p>
               </div>
             </div>
           </div>

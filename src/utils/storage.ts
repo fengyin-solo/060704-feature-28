@@ -1,11 +1,12 @@
-import type { Diary, User, InventoryItem, ArchivedDiary } from '@/types'
+import type { Diary, User, InventoryItem, ArchivedDiary, Visitor } from '@/types'
 
 const STORAGE_KEYS = {
   CURRENT_USER: 'glitch_diary_current_user',
   USERS: 'glitch_diary_users',
   DIARIES: 'glitch_diary_diaries',
   INVENTORY: 'glitch_diary_inventory_',
-  ARCHIVED_DIARIES: 'glitch_diary_archived_diaries'
+  ARCHIVED_DIARIES: 'glitch_diary_archived_diaries',
+  VISITORS: 'glitch_diary_visitors'
 }
 
 export const storage = {
@@ -55,5 +56,24 @@ export const storage = {
 
   saveArchivedDiaries(archivedDiaries: ArchivedDiary[]): void {
     localStorage.setItem(STORAGE_KEYS.ARCHIVED_DIARIES, JSON.stringify(archivedDiaries))
+  },
+
+  getVisitors(): Visitor[] {
+    const data = localStorage.getItem(STORAGE_KEYS.VISITORS)
+    return data ? JSON.parse(data) : []
+  },
+
+  saveVisitors(visitors: Visitor[]): void {
+    localStorage.setItem(STORAGE_KEYS.VISITORS, JSON.stringify(visitors))
+  },
+
+  addVisitor(visitor: Visitor): void {
+    const visitors = this.getVisitors()
+    visitors.push(visitor)
+    this.saveVisitors(visitors)
+  },
+
+  getVisitorsForUser(userId: string): Visitor[] {
+    return this.getVisitors().filter(v => v.visitedUserId === userId)
   }
 }

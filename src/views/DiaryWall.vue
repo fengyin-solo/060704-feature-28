@@ -70,6 +70,7 @@ const canCreate = computed(() => {
 function startVisiting() {
   if (route.params.userId) {
     userStore.startVisiting(route.params.userId as string)
+    userStore.recordVisit(route.params.userId as string, 'diaryWall')
   }
 }
 
